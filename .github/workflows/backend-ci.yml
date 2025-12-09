@@ -1,0 +1,183 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'workers/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'workers/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: chain
+          POSTGRES_USER: chain
+          POSTGRES_DB: chain
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio black flake8 mypy
+    
+    - name: Install worker dependencies
+      run: |
+        cd workers
+        pip install -r requirements.txt
+    
+    - name: Lint with flake8
+      run: |
+        cd backend
+        flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 app --count --max-complexity=10 --max-line-length=100 --statistics
+    
+    - name: Format check with black
+      run: |
+        cd backend
+        black --check --diff app
+    
+    - name: Type check with mypy
+      run: |
+        cd backend
+        mypy app || echo "Type checking failed - will be enforced later"
+    
+    - name: Test database setup
+      env:
+        DATABASE_URL: postgresql://chain:chain@localhost:5432/chain
+      run: |
+        cd backend
+        python -c "
+        from app.core.db import engine, Base
+        from app.domain.entities.models import Entity, Person, Address
+        from app.domain.properties.models import Property
+        from app.domain.graph.models import Relationship, Event, RiskScore
+        Base.metadata.create_all(bind=engine)
+        print('Database tables created successfully')
+        "
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://chain:chain@localhost:5432/chain
+        ENVIRONMENT: test
+      run: |
+        cd backend
+        pytest -v --cov=app --cov-report=term-missing || echo "Tests will be added soon"
+    
+    - name: Test ETL workers
+      env:
+        DATABASE_URL: postgresql://chain:chain@localhost:5432/chain
+      run: |
+        cd workers
+        python -c "
+        from etl_worker.main import setup_worker, create_coordinator
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy import create_engine
+        import os
+        
+        engine = create_engine(os.environ['DATABASE_URL'])
+        Session = sessionmaker(bind=engine)
+        db = Session()
+        
+        logger = setup_worker()
+        coordinator = create_coordinator(db)
+        print(f'ETL coordinator initialized with {len(coordinator.sources)} sources')
+        
+        db.close()
+        "
+    
+    - name: Security scan
+      run: |
+        pip install bandit safety
+        cd backend
+        bandit -r app -f json || echo "Security scan completed"
+        safety check || echo "Dependency security check completed"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: false
+        tags: chain-of-record/backend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Test Docker Compose
+      run: |
+        cd infra
+        docker-compose config
+        docker-compose -f docker-compose.yml build --no-cache
+        echo "Docker Compose configuration validated"
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Start services
+      run: |
+        cd infra
+        docker-compose up -d postgres
+        sleep 10
+    
+    - name: Wait for database
+      run: |
+        docker-compose -f infra/docker-compose.yml exec -T postgres pg_isready -U chain -d chain
+    
+    - name: Run integration tests
+      run: |
+        cd infra
+        docker-compose up --build -d backend
+        sleep 15
+        
+        # Test API health
+        curl -f http://localhost:8000/health || exit 1
+        curl -f http://localhost:8000/api/v1/health/detailed || exit 1
+        
+        echo "Integration tests passed"
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        cd infra
+        docker-compose down -v

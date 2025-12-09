@@ -1,0 +1,1 @@
+# Domain properties initialization

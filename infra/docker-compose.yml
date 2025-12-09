@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: chain-postgres
+    environment:
+      POSTGRES_DB: chain
+      POSTGRES_USER: chain
+      POSTGRES_PASSWORD: chain
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - chain-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chain -d chain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: chain-backend
+    environment:
+      - DATABASE_URL=postgresql://chain:chain@postgres:5432/chain
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=development_secret_key_change_in_production
+    volumes:
+      - ../backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chain-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ETL Worker
+  # etl-worker:
+  #   build:
+  #     context: ../backend
+  #     dockerfile: Dockerfile
+  #   container_name: chain-etl-worker
+  #   environment:
+  #     - DATABASE_URL=postgresql://chain:chain@postgres:5432/chain
+  #     - ENVIRONMENT=development
+  #     - LOG_LEVEL=INFO
+  #   volumes:
+  #     - ../workers:/workers
+  #     - ../backend:/app
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - chain-network
+  #   command: python /workers/etl_worker/main.py
+  #   restart: "no"  # Don't auto-restart; run manually or via scheduler
+
+  # ETL Scheduler (optional)
+  # etl-scheduler:
+  #   build:
+  #     context: ../backend
+  #     dockerfile: Dockerfile
+  #   container_name: chain-etl-scheduler
+  #   environment:
+  #     - DATABASE_URL=postgresql://chain:chain@postgres:5432/chain
+  #     - ENVIRONMENT=development
+  #     - LOG_LEVEL=INFO
+  #   volumes:
+  #     - ../workers:/workers
+  #     - ../backend:/app
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - chain-network
+  #   command: python /workers/etl_worker/scheduler.py start
+  #   restart: unless-stopped
+
+  # Redis (for future caching/queues)
+  redis:
+    image: redis:7-alpine
+    container_name: chain-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - chain-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # pgAdmin (database management UI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: chain-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@chainofrecord.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - chain-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  chain-network:
+    driver: bridge
