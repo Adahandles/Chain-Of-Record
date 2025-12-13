@@ -1,5 +1,5 @@
 # Graph relationship models
-from sqlalchemy import Column, BigInteger, String, Date, DateTime, Numeric, Index, func
+from sqlalchemy import Column, BigInteger, String, Date, DateTime, Numeric, Index, JSON, func
 from app.core.db import Base
 
 
@@ -52,7 +52,7 @@ class Event(Base):
     event_type = Column(String, nullable=False, index=True)     # 'OFFICER_CHANGE', 'DEED', 'TAX_DELINQ'
     event_date = Column(Date, nullable=False, index=True)
     source_system = Column(String, nullable=False, index=True)
-    payload = Column('payload', type_=func.JSON)  # JSON data specific to event type
+    payload = Column('payload', JSON)  # JSON data specific to event type
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -76,7 +76,7 @@ class RiskScore(Base):
     entity_id = Column(BigInteger, nullable=False, index=True)
     score = Column(Numeric(5, 2), nullable=False)  # Numeric risk score
     grade = Column(String(1), nullable=False, index=True)  # 'A' through 'F'
-    flags = Column('flags', type_=func.JSON, nullable=False)  # List of triggered rule names
+    flags = Column('flags', JSON, nullable=False)  # List of triggered rule names
     
     calculated_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
