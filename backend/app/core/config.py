@@ -9,6 +9,14 @@ class Settings(BaseSettings):
     database_url: AnyUrl        # <- this is what was missing
     log_level: str = "INFO"
 
+    @property
+    def is_development(self) -> bool:
+        return self.environment in ["local", "dev"]
+    
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "prod"
+
     class Config:
         env_file = ".env"
         env_prefix = ""
