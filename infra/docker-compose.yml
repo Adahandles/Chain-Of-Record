@@ -34,6 +34,12 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - SECRET_KEY=development_secret_key_change_in_production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=chain
+      - DB_NAME=chain
+      - RELOAD=true
+      - SEED_DATA=false
     volumes:
       - ../backend:/app
     ports:
@@ -43,12 +49,13 @@ services:
         condition: service_healthy
     networks:
       - chain-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    entrypoint: ["/app/scripts/docker-entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   # ETL Worker
   # etl-worker:
