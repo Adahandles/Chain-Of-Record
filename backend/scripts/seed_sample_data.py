@@ -155,6 +155,8 @@ def create_addresses(db) -> Dict[str, Address]:
     ]
     
     addresses = {}
+    type_counters = {}
+    
     for addr_data in addresses_data:
         address = Address(
             line1=addr_data["line1"],
@@ -172,7 +174,12 @@ def create_addresses(db) -> Dict[str, Address]:
             )
         )
         db.add(address)
-        addresses[addr_data["type"] + "_" + str(len([a for a in addresses if addr_data["type"] in a]))] = address
+        
+        # Generate unique key with counter
+        addr_type = addr_data["type"]
+        counter = type_counters.get(addr_type, 0)
+        addresses[f"{addr_type}_{counter}"] = address
+        type_counters[addr_type] = counter + 1
     
     db.commit()
     logger.info(f"Created {len(addresses_data)} addresses")
@@ -181,7 +188,11 @@ def create_addresses(db) -> Dict[str, Address]:
 
 
 def create_entities(db, people: Dict[str, Person], addresses: Dict[str, Address]) -> Dict[str, Entity]:
-    """Create sample business entities with varied attributes."""
+    """Create sample business entities with varied attributes.
+    
+    Note: people and addresses must be committed to the database before calling this function,
+    as we reference their IDs for foreign key relationships.
+    """
     logger.info("Creating entities...")
     
     today = date.today()
@@ -354,7 +365,11 @@ def create_entities(db, people: Dict[str, Person], addresses: Dict[str, Address]
 
 
 def create_properties(db, addresses: Dict[str, Address]) -> Dict[str, Property]:
-    """Create sample properties in Marion County, FL."""
+    """Create sample properties in Marion County, FL.
+    
+    Note: addresses must be committed to the database before calling this function,
+    as we reference their IDs for the situs_address_id foreign key.
+    """
     logger.info("Creating properties...")
     
     today = date.today()
@@ -539,7 +554,11 @@ def create_relationships(
     addresses: Dict[str, Address],
     properties: Dict[str, Property]
 ) -> None:
-    """Create relationships between entities, people, addresses, and properties."""
+    """Create relationships between entities, people, addresses, and properties.
+    
+    Note: All referenced objects must be committed to the database before calling this function,
+    as we use their IDs to create relationship records.
+    """
     logger.info("Creating relationships...")
     
     today = date.today()
