@@ -1,96 +1,86 @@
-# Health check and system status endpoints
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.db import get_db
-from app.core.config import settings
-from datetime import datetime
-import sys
+from app.database import get_db
+from sqlalchemy import func
 
-router = APIRouter(tags=["health"])
-
+router = APIRouter()
 
 @router.get("/health")
-def health_check():
-    """Basic health check endpoint."""
+async def health_check():
+    """
+    Health check endpoint to verify the API is running.
+    
+    Returns:
+        dict: A simple status message indicating the API is healthy
+    """
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "environment": settings.environment,
-        "version": "1.0.0"
+        "message": "API is running"
     }
 
-
-@router.get("/health/detailed")
-def detailed_health_check(db: Session = Depends(get_db)):
-    """Detailed health check including database connectivity."""
+@router.get("/health/db")
+async def database_health_check(db: Session = Depends(get_db)):
+    """
+    Database health check endpoint.
     
-    # Test database connection
-    db_status = "healthy"
+    Verifies that the database connection is working by executing a simple query.
+    
+    Args:
+        db: Database session dependency
+        
+    Returns:
+        dict: Status message indicating database health
+        
+    Raises:
+        HTTPException: If database connection fails
+    """
     try:
+        # Execute a simple query to verify database connectivity
         db.execute("SELECT 1")
-    except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
-    
-    # System information
-    system_info = {
-        "python_version": sys.version,
-        "database_status": db_status,
-        "settings": {
-            "environment": settings.environment,
-            "log_level": settings.log_level,
-            "api_prefix": settings.api_v1_prefix
+        return {
+            "status": "healthy",
+            "message": "Database connection is working"
         }
-    }
-    
-    return {
-        "status": "healthy" if db_status == "healthy" else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
-        "system": system_info
-    }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection failed: {str(e)}"
+        )
 
-
-@router.get("/stats")
-def get_system_statistics(db: Session = Depends(get_db)):
-    """Get high-level system statistics."""
-    from app.domain.entities.models import Entity
-    from app.domain.properties.models import Property
-    from app.domain.graph.models import Relationship, Event, RiskScore
-    from sqlalchemy import func
+@router.get("/health/stats")
+async def get_system_statistics(db: Session = Depends(get_db)):
+    """
+    Get system statistics including database metrics.
     
+    Returns information about the number of records in key tables.
+    
+    Args:
+        db: Database session dependency
+        
+    Returns:
+        dict: System statistics including table counts
+        
+    Raises:
+        HTTPException: If unable to retrieve statistics
+    """
     try:
-        stats = {
-            "entities": {
-                "total": db.query(func.count(Entity.id)).scalar() or 0,
-                "by_type": dict(db.query(Entity.type, func.count(Entity.id)).group_by(Entity.type).all()),
-                "by_source": dict(db.query(Entity.source_system, func.count(Entity.id)).group_by(Entity.source_system).all())
-            },
-            "properties": {
-                "total": db.query(func.count(Property.id)).scalar() or 0,
-                "by_county": dict(db.query(Property.county, func.count(Property.id)).group_by(Property.county).all())
-            },
-            "relationships": {
-                "total": db.query(func.count(Relationship.id)).scalar() or 0,
-                "by_type": dict(db.query(Relationship.rel_type, func.count(Relationship.id)).group_by(Relationship.rel_type).all())
-            },
-            "events": {
-                "total": db.query(func.count(Event.id)).scalar() or 0,
-                "by_type": dict(db.query(Event.event_type, func.count(Event.id)).group_by(Event.event_type).all())
-            },
-            "risk_scores": {
-                "total": db.query(func.count(RiskScore.id)).scalar() or 0,
-                "by_grade": dict(db.query(RiskScore.grade, func.count(RiskScore.id)).group_by(RiskScore.grade).all())
+        # Import models here to avoid circular imports
+        from app.models.record import Record
+        from app.models.user import User
+        
+        # Get counts from database
+        record_count = db.query(func.count(Record.id)).scalar()
+        user_count = db.query(func.count(User.id)).scalar()
+        
+        return {
+            "status": "healthy",
+            "statistics": {
+                "total_records": record_count,
+                "total_users": user_count
             }
         }
-        
-        return {
-            "status": "success",
-            "timestamp": datetime.utcnow().isoformat(),
-            "statistics": stats
-        }
-        
     except Exception as e:
-        return {
-            "status": "error",
-            "timestamp": datetime.utcnow().isoformat(),
-            "error": str(e)
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve system statistics: {str(e)}"
+        )
