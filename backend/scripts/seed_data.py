@@ -24,10 +24,9 @@ Environment Variables:
 import sys
 import os
 import logging
-import random
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -344,7 +343,7 @@ def seed_entity_with_data(conn, entity_data: Dict[str, Any]) -> None:
     logger.info(f"\n✓ Successfully created {entity_name}")
 
 
-def generate_entity_data() -> list[Dict[str, Any]]:
+def generate_entity_data() -> List[Dict[str, Any]]:
     """Generate data for 3 realistic entities with varied characteristics."""
     today = date.today()
     
