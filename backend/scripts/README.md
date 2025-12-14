@@ -2,6 +2,34 @@
 
 This directory contains database management scripts for Chain Of Record.
 
+## Quick Start
+
+To set up a complete development database:
+
+```bash
+cd /path/to/Chain-Of-Record/backend
+
+# 1. Initialize the database schema and basic test data
+python scripts/init_db.py
+
+# 2. Add realistic test entities with varied risk profiles
+python scripts/seed_data.py
+
+# 3. (Optional) Add comprehensive sample data for testing
+python scripts/seed_sample_data.py
+
+# 4. Start the API server
+uvicorn app.main:app --reload
+```
+
+## Script Overview
+
+| Script | Purpose | When to Use |
+|--------|---------|-------------|
+| **init_db.py** | Create schema + 1 test entity | First time setup or reset |
+| **seed_data.py** | Add 3 realistic entities | After init_db.py for varied test data |
+| **seed_sample_data.py** | Add 10 entities with complex relationships | Full system testing and demos |
+
 ## Prerequisites
 
 1. **Install Python dependencies:**
@@ -16,14 +44,252 @@ This directory contains database management scripts for Chain Of Record.
    DATABASE_URL=postgresql://chain:chain@localhost:5432/chain
    ```
 
-3. **Initialize database schema:**
-   The database must be initialized with the schema before seeding data:
+3. **Ensure PostgreSQL is running:**
    ```bash
-   cd /path/to/Chain-Of-Record/backend
-   python -m alembic upgrade head
+   # If using Docker
+   docker ps | grep postgres
+   
+   # Or if running locally
+   pg_isready -h localhost -p 5432
    ```
 
 ## Scripts
+
+### `init_db.py` ⭐ NEW
+
+**Purpose:** Initialize the database schema and seed basic test data for development.
+
+This script:
+- Executes `infra/postgres/init.sql` to create all tables, indexes, and views
+- Seeds initial test data (1 address, 1 person, 1 entity, 1 property, 1 relationship, 1 event, 1 risk score)
+- Verifies the database setup by counting tables and records
+- Is idempotent (safe to run multiple times)
+
+#### Usage
+
+**Basic usage:**
+```bash
+cd /path/to/Chain-Of-Record/backend
+python scripts/init_db.py
+```
+
+**With custom database URL:**
+```bash
+DATABASE_URL=postgresql://user:pass@localhost:5432/mydb python scripts/init_db.py
+```
+
+#### What It Creates
+
+**Schema:**
+- All core tables: `entities`, `people`, `addresses`, `properties`, `relationships`, `events`, `risk_scores`, `users`
+- All indexes for optimal query performance
+- Views: `active_entities`, `latest_risk_scores`, `high_risk_entities`
+- PostgreSQL extensions: `uuid-ossp`, `pg_trgm`
+
+**Test Data:**
+- 1 Address: 123 Main Street, Austin, TX 78701
+- 1 Person: John Smith (registered agent)
+- 1 Entity: Test Company LLC (TX, formed 1 year ago)
+- 1 Property: PARCEL-12345 in Travis County (0.5 acres, $350K market value)
+- 1 Relationship: Test Company LLC owns PARCEL-12345
+- 1 Event: Formation event for Test Company LLC
+- 1 Risk Score: Grade B, score 35.5
+
+#### Expected Output
+
+```
+================================================================================
+CHAIN OF RECORD - DATABASE INITIALIZATION
+================================================================================
+
+Connecting to database...
+Database URL: localhost:5432/chain
+✓ Database connection successful
+Executing init.sql to create database schema...
+Database schema created successfully
+Seeding initial test data...
+  → Creating test address...
+     Address ID: 1
+  → Creating test person...
+     Person ID: 1
+  → Creating test entity...
+     Entity ID: 1
+  → Creating test property...
+     Property ID: 1
+  → Creating test relationship...
+     Relationship created
+  → Creating test event...
+     Event created
+  → Creating test risk score...
+     Risk Score created
+Initial test data seeded successfully
+
+================================================================================
+DATABASE VERIFICATION
+================================================================================
+
+Tables created: 8
+Tables: addresses, entities, events, people, properties, relationships, risk_scores, users
+
+Record counts:
+  addresses: 2
+  entities: 1
+  events: 1
+  people: 1
+  properties: 1
+  relationships: 1
+  risk_scores: 1
+  users: 1
+
+Views created: 3
+Views: active_entities, high_risk_entities, latest_risk_scores
+
+Indexes created: 45
+
+================================================================================
+VERIFICATION COMPLETE
+================================================================================
+
+✅ SUCCESS: Database initialized successfully!
+
+Next steps:
+  1. Run additional seeding: python scripts/seed_data.py
+  2. Start the API server: uvicorn app.main:app --reload
+  3. Test the endpoints:
+     - GET http://localhost:8000/api/v1/entities/1
+     - GET http://localhost:8000/api/v1/scores/entity/1
+     - GET http://localhost:8000/api/v1/properties/1
+```
+
+### `seed_data.py` ⭐ NEW
+
+**Purpose:** Add realistic test entities with varied risk characteristics.
+
+This script adds 3 additional entities to demonstrate different risk profiles:
+- **Acme Holdings LLC** - Grade A, low risk score (~25)
+- **Summit Real Estate Corporation** - Grade B, medium risk score (~42)
+- **Riverside Property Management LLC** - Grade D, high risk score (~68)
+
+For each entity, it creates:
+- A unique business address
+- A registered agent (person)
+- A commercial property with realistic acreage and market values
+- An ownership relationship
+- Formation event
+- Risk score with appropriate flags
+
+#### Usage
+
+**Basic usage:**
+```bash
+cd /path/to/Chain-Of-Record/backend
+python scripts/seed_data.py
+```
+
+**Note:** This script requires `init_db.py` to be run first to create the database schema.
+
+#### What It Creates
+
+**Acme Holdings LLC (Low Risk - Grade A):**
+- Formation: ~5 years ago (established entity)
+- EIN: Available and verified
+- Property: TRAVIS-COM-001, 2.5 acres commercial, $950K market value
+- Risk Score: 24.5 (Grade A)
+- Flags: `established_entity`, `verified_ein`, `stable_ownership`
+
+**Summit Real Estate Corporation (Medium Risk - Grade B):**
+- Formation: ~2.5 years ago
+- EIN: Available but not verified
+- Property: TRAVIS-COM-002, 3.75 acres commercial, $1.32M market value
+- Recent property purchase (245 days ago)
+- Risk Score: 42.0 (Grade B)
+- Flags: `ein_not_verified`, `recent_property_purchase`, `moderate_entity_age`
+
+**Riverside Property Management LLC (High Risk - Grade D):**
+- Formation: 45 days ago (very new entity)
+- EIN: Not available
+- Property: TRAVIS-COM-003, 5.25 acres commercial, $1.9M market value
+- Very recent property purchase (30 days ago)
+- Risk Score: 68.5 (Grade D)
+- Flags: `new_entity`, `no_ein`, `rapid_property_acquisition`, `high_value_property`
+
+#### Expected Output
+
+```
+================================================================================
+CHAIN OF RECORD - ADVANCED DATA SEEDING
+================================================================================
+
+Connecting to database...
+✓ Database connection successful
+
+============================================================
+Creating entity: Acme Holdings LLC
+============================================================
+  → Creating address: 789 Enterprise Boulevard
+     Address ID: 3
+  → Creating registered agent: Sarah Mitchell
+     Agent ID: 2
+  → Creating entity: Acme Holdings LLC
+     Entity ID: 2
+  → Creating property address: 1000 Commerce Street
+     Property Address ID: 4
+  → Creating property: TRAVIS-COM-001
+     Property ID: 2
+     Acreage: 2.50, Market Value: $950,000.00
+  → Creating ownership relationship
+     Relationship created
+  → Creating formation event
+     Formation event created
+  → Creating risk score: Grade A, Score 24.5
+     Risk Score ID created with flags: ["established_entity", "verified_ein", "stable_ownership"]
+
+✓ Successfully created Acme Holdings LLC
+
+[Similar output for Summit Real Estate Corporation and Riverside Property Management LLC...]
+
+================================================================================
+All entities seeded successfully!
+================================================================================
+
+================================================================================
+DATA VERIFICATION
+================================================================================
+
+New entities created: 3
+
+Entity Details:
+  ID 2: Acme Holdings LLC (LLC) - ACTIVE - Formed: 2019-12-15
+  ID 3: Summit Real Estate Corporation (CORP) - ACTIVE - Formed: 2022-06-15
+  ID 4: Riverside Property Management LLC (LLC) - ACTIVE - Formed: 2024-10-30
+
+Risk Scores:
+  Acme Holdings LLC: Grade A (Score: 24.5)
+    Flags: ["established_entity", "verified_ein", "stable_ownership"]
+  Summit Real Estate Corporation: Grade B (Score: 42.0)
+    Flags: ["ein_not_verified", "recent_property_purchase", "moderate_entity_age"]
+  Riverside Property Management LLC: Grade D (Score: 68.5)
+    Flags: ["new_entity", "no_ein", "rapid_property_acquisition", "high_value_property"]
+
+Property Ownership:
+  Acme Holdings LLC: Parcel TRAVIS-COM-001 (2.50 acres, $950,000.00 market value)
+  Summit Real Estate Corporation: Parcel TRAVIS-COM-002 (3.75 acres, $1,320,000.00 market value)
+  Riverside Property Management LLC: Parcel TRAVIS-COM-003 (5.25 acres, $1,900,000.00 market value)
+
+================================================================================
+VERIFICATION COMPLETE
+================================================================================
+
+✅ SUCCESS: Advanced data seeding complete!
+
+Next steps:
+  1. Start the API server: uvicorn app.main:app --reload
+  2. Test the endpoints:
+     - GET http://localhost:8000/api/v1/entities
+     - GET http://localhost:8000/api/v1/scores/entity/2
+     - GET http://localhost:8000/api/v1/properties
+  3. Explore high-risk entities: GET http://localhost:8000/api/v1/entities?grade=D
+```
 
 ### `seed_sample_data.py`
 
