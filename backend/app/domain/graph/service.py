@@ -1,7 +1,7 @@
 # Graph service for relationship queries and analysis
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from sqlalchemy import and_, or_, desc, func
 from .models import Relationship, Event, RiskScore
 from app.core.logging import get_logger
 
