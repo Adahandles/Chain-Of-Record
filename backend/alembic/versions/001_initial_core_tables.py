@@ -19,6 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Create PostgreSQL extensions
+    op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+    op.execute('CREATE EXTENSION IF NOT EXISTS "pg_trgm"')
+    
     # Create entities table
     op.create_table(
         'entities',
@@ -188,8 +192,66 @@ def upgrade() -> None:
     op.create_index('idx_risk_score_grade', 'risk_scores', ['grade', 'score'], unique=False)
     op.create_index('idx_risk_score_entity_date', 'risk_scores', ['entity_id', 'calculated_at'], unique=False)
 
+    # Create users table
+    op.create_table(
+        'users',
+        sa.Column('id', sa.BigInteger(), nullable=False),
+        sa.Column('email', sa.String(), nullable=False),
+        sa.Column('hashed_password', sa.String(), nullable=False),
+        sa.Column('full_name', sa.String(), nullable=True),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=True),
+        sa.Column('is_superuser', sa.Boolean(), server_default=sa.text('false'), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('email')
+    )
+    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=False)
+
+    # Create database views
+    # Active entities view
+    op.execute("""
+        CREATE OR REPLACE VIEW active_entities AS
+        SELECT *
+        FROM entities
+        WHERE status = 'ACTIVE' OR status IS NULL
+    """)
+    
+    # Latest risk scores view
+    op.execute("""
+        CREATE OR REPLACE VIEW latest_risk_scores AS
+        SELECT DISTINCT ON (entity_id) 
+            entity_id,
+            score,
+            grade,
+            flags,
+            calculated_at
+        FROM risk_scores
+        ORDER BY entity_id, calculated_at DESC
+    """)
+    
+    # High risk entities view
+    op.execute("""
+        CREATE OR REPLACE VIEW high_risk_entities AS
+        SELECT e.*, rs.score, rs.grade, rs.flags
+        FROM entities e
+        JOIN latest_risk_scores rs ON e.id = rs.entity_id
+        WHERE rs.score > 60
+    """)
+
 
 def downgrade() -> None:
+    # Drop views
+    op.execute('DROP VIEW IF EXISTS high_risk_entities')
+    op.execute('DROP VIEW IF EXISTS latest_risk_scores')
+    op.execute('DROP VIEW IF EXISTS active_entities')
+    
+    # Drop users table
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')
+    
     # Drop risk_scores table
     op.drop_index('idx_risk_score_entity_date', table_name='risk_scores')
     op.drop_index('idx_risk_score_grade', table_name='risk_scores')
@@ -269,3 +331,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_entities_external_id'), table_name='entities')
     op.drop_index(op.f('ix_entities_id'), table_name='entities')
     op.drop_table('entities')
+    
+    # Drop PostgreSQL extensions
+    op.execute('DROP EXTENSION IF EXISTS "pg_trgm"')
+    op.execute('DROP EXTENSION IF EXISTS "uuid-ossp"')
