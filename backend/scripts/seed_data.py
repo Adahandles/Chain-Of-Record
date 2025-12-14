@@ -63,179 +63,283 @@ def seed_entity_with_data(conn, entity_data: Dict[str, Any]) -> None:
     
     # 1. Create address for entity
     logger.info(f"  → Creating address: {entity_data['address']['line1']}")
-    conn.execute(text("""
-        INSERT INTO addresses (line1, line2, city, state, postal_code, county, country, normalized_hash)
-        VALUES (:line1, :line2, :city, :state, :postal_code, :county, 'US', :normalized_hash)
-        ON CONFLICT (normalized_hash) DO NOTHING
-    """), entity_data['address'])
     
-    # Get address ID
+    # Check if address already exists
     result = conn.execute(text("""
-        SELECT id FROM addresses WHERE normalized_hash = :normalized_hash
-    """), {'normalized_hash': entity_data['address']['normalized_hash']})
-    address_id = result.fetchone()[0]
-    logger.info(f"     Address ID: {address_id}")
+        SELECT id FROM addresses WHERE line1 = :line1 AND city = :city AND state = :state
+    """), {
+        'line1': entity_data['address']['line1'],
+        'city': entity_data['address']['city'],
+        'state': entity_data['address']['state']
+    })
+    existing = result.fetchone()
+    
+    if existing:
+        address_id = existing[0]
+        logger.info(f"     Address already exists with ID: {address_id}")
+    else:
+        conn.execute(text("""
+            INSERT INTO addresses (line1, line2, city, state, postal_code, county, country, normalized_hash)
+            VALUES (:line1, :line2, :city, :state, :postal_code, :county, 'US', :normalized_hash)
+        """), entity_data['address'])
+        
+        # Get address ID
+        result = conn.execute(text("""
+            SELECT id FROM addresses WHERE line1 = :line1 AND city = :city AND state = :state
+        """), {
+            'line1': entity_data['address']['line1'],
+            'city': entity_data['address']['city'],
+            'state': entity_data['address']['state']
+        })
+        address_id = result.fetchone()[0]
+        logger.info(f"     Address ID: {address_id}")
     
     # 2. Create registered agent
     logger.info(f"  → Creating registered agent: {entity_data['agent']['full_name']}")
-    conn.execute(text("""
-        INSERT INTO people (full_name, normalized_name)
-        VALUES (:full_name, :normalized_name)
-        ON CONFLICT DO NOTHING
-    """), entity_data['agent'])
     
-    # Get person ID
+    # Check if person already exists
     result = conn.execute(text("""
         SELECT id FROM people WHERE full_name = :full_name
     """), {'full_name': entity_data['agent']['full_name']})
-    person_id = result.fetchone()[0]
-    logger.info(f"     Agent ID: {person_id}")
+    existing = result.fetchone()
+    
+    if existing:
+        person_id = existing[0]
+        logger.info(f"     Agent already exists with ID: {person_id}")
+    else:
+        conn.execute(text("""
+            INSERT INTO people (full_name, normalized_name)
+            VALUES (:full_name, :normalized_name)
+        """), entity_data['agent'])
+        
+        # Get person ID
+        result = conn.execute(text("""
+            SELECT id FROM people WHERE full_name = :full_name
+        """), {'full_name': entity_data['agent']['full_name']})
+        person_id = result.fetchone()[0]
+        logger.info(f"     Agent ID: {person_id}")
     
     # 3. Create entity
     logger.info(f"  → Creating entity: {entity_name}")
-    entity_params = {
-        'external_id': entity_data['external_id'],
-        'source_system': entity_data['source_system'],
-        'type': entity_data['type'],
-        'legal_name': entity_name,
-        'jurisdiction': entity_data['jurisdiction'],
-        'status': entity_data['status'],
-        'formation_date': entity_data['formation_date'],
-        'ein_available': entity_data['ein_available'],
-        'ein_verified': entity_data['ein_verified'],
-        'agent_id': person_id,
-        'address_id': address_id
-    }
     
-    conn.execute(text("""
-        INSERT INTO entities (
-            external_id, source_system, type, legal_name, jurisdiction, status,
-            formation_date, ein_available, ein_verified, registered_agent_id, primary_address_id
-        )
-        VALUES (
-            :external_id, :source_system, :type, :legal_name, :jurisdiction, :status,
-            :formation_date, :ein_available, :ein_verified, :agent_id, :address_id
-        )
-        ON CONFLICT DO NOTHING
-    """), entity_params)
-    
-    # Get entity ID
+    # Check if entity already exists
     result = conn.execute(text("""
         SELECT id FROM entities WHERE external_id = :external_id
     """), {'external_id': entity_data['external_id']})
-    entity_id = result.fetchone()[0]
-    logger.info(f"     Entity ID: {entity_id}")
+    existing = result.fetchone()
+    
+    if existing:
+        entity_id = existing[0]
+        logger.info(f"     Entity already exists with ID: {entity_id}")
+    else:
+        entity_params = {
+            'external_id': entity_data['external_id'],
+            'source_system': entity_data['source_system'],
+            'type': entity_data['type'],
+            'legal_name': entity_name,
+            'jurisdiction': entity_data['jurisdiction'],
+            'status': entity_data['status'],
+            'formation_date': entity_data['formation_date'],
+            'ein_available': entity_data['ein_available'],
+            'ein_verified': entity_data['ein_verified'],
+            'agent_id': person_id,
+            'address_id': address_id
+        }
+        
+        conn.execute(text("""
+            INSERT INTO entities (
+                external_id, source_system, type, legal_name, jurisdiction, status,
+                formation_date, ein_available, ein_verified, registered_agent_id, primary_address_id
+            )
+            VALUES (
+                :external_id, :source_system, :type, :legal_name, :jurisdiction, :status,
+                :formation_date, :ein_available, :ein_verified, :agent_id, :address_id
+            )
+        """), entity_params)
+        
+        # Get entity ID
+        result = conn.execute(text("""
+            SELECT id FROM entities WHERE external_id = :external_id
+        """), {'external_id': entity_data['external_id']})
+        entity_id = result.fetchone()[0]
+        logger.info(f"     Entity ID: {entity_id}")
     
     # 4. Create property situs address
     logger.info(f"  → Creating property address: {entity_data['property_address']['line1']}")
-    conn.execute(text("""
-        INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
-        VALUES (:line1, :city, :state, :postal_code, :county, 'US', :normalized_hash)
-        ON CONFLICT (normalized_hash) DO NOTHING
-    """), entity_data['property_address'])
     
-    # Get property address ID
+    # Check if property address already exists
     result = conn.execute(text("""
-        SELECT id FROM addresses WHERE normalized_hash = :normalized_hash
-    """), {'normalized_hash': entity_data['property_address']['normalized_hash']})
-    property_address_id = result.fetchone()[0]
-    logger.info(f"     Property Address ID: {property_address_id}")
+        SELECT id FROM addresses WHERE line1 = :line1 AND city = :city AND state = :state
+    """), {
+        'line1': entity_data['property_address']['line1'],
+        'city': entity_data['property_address']['city'],
+        'state': entity_data['property_address']['state']
+    })
+    existing = result.fetchone()
+    
+    if existing:
+        property_address_id = existing[0]
+        logger.info(f"     Property address already exists with ID: {property_address_id}")
+    else:
+        conn.execute(text("""
+            INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
+            VALUES (:line1, :city, :state, :postal_code, :county, 'US', :normalized_hash)
+        """), entity_data['property_address'])
+        
+        # Get property address ID
+        result = conn.execute(text("""
+            SELECT id FROM addresses WHERE line1 = :line1 AND city = :city AND state = :state
+        """), {
+            'line1': entity_data['property_address']['line1'],
+            'city': entity_data['property_address']['city'],
+            'state': entity_data['property_address']['state']
+        })
+        property_address_id = result.fetchone()[0]
+        logger.info(f"     Property Address ID: {property_address_id}")
     
     # 5. Create property
     logger.info(f"  → Creating property: {entity_data['property']['parcel_id']}")
-    property_params = {
-        'parcel_id': entity_data['property']['parcel_id'],
-        'county': entity_data['property']['county'],
-        'jurisdiction': entity_data['property']['jurisdiction'],
-        'situs_address_id': property_address_id,
-        'land_use_code': entity_data['property']['land_use_code'],
-        'acreage': entity_data['property']['acreage'],
-        'last_sale_date': entity_data['property'].get('last_sale_date'),
-        'last_sale_price': entity_data['property'].get('last_sale_price'),
-        'market_value': entity_data['property']['market_value'],
-        'assessed_value': entity_data['property']['assessed_value'],
-        'homestead_exempt': entity_data['property']['homestead_exempt'],
-        'tax_year': entity_data['property']['tax_year']
-    }
     
-    conn.execute(text("""
-        INSERT INTO properties (
-            parcel_id, county, jurisdiction, situs_address_id, land_use_code,
-            acreage, last_sale_date, last_sale_price, market_value, assessed_value,
-            homestead_exempt, tax_year
-        )
-        VALUES (
-            :parcel_id, :county, :jurisdiction, :situs_address_id, :land_use_code,
-            :acreage, :last_sale_date, :last_sale_price, :market_value, :assessed_value,
-            :homestead_exempt, :tax_year
-        )
-        ON CONFLICT DO NOTHING
-    """), property_params)
-    
-    # Get property ID
+    # Check if property already exists
     result = conn.execute(text("""
         SELECT id FROM properties WHERE parcel_id = :parcel_id
     """), {'parcel_id': entity_data['property']['parcel_id']})
-    property_id = result.fetchone()[0]
-    logger.info(f"     Property ID: {property_id}")
+    existing = result.fetchone()
+    
+    if existing:
+        property_id = existing[0]
+        logger.info(f"     Property already exists with ID: {property_id}")
+    else:
+        property_params = {
+            'parcel_id': entity_data['property']['parcel_id'],
+            'county': entity_data['property']['county'],
+            'jurisdiction': entity_data['property']['jurisdiction'],
+            'situs_address_id': property_address_id,
+            'land_use_code': entity_data['property']['land_use_code'],
+            'acreage': entity_data['property']['acreage'],
+            'last_sale_date': entity_data['property'].get('last_sale_date'),
+            'last_sale_price': entity_data['property'].get('last_sale_price'),
+            'market_value': entity_data['property']['market_value'],
+            'assessed_value': entity_data['property']['assessed_value'],
+            'homestead_exempt': entity_data['property']['homestead_exempt'],
+            'tax_year': entity_data['property']['tax_year']
+        }
+        
+        conn.execute(text("""
+            INSERT INTO properties (
+                parcel_id, county, jurisdiction, situs_address_id, land_use_code,
+                acreage, last_sale_date, last_sale_price, market_value, assessed_value,
+                homestead_exempt, tax_year
+            )
+            VALUES (
+                :parcel_id, :county, :jurisdiction, :situs_address_id, :land_use_code,
+                :acreage, :last_sale_date, :last_sale_price, :market_value, :assessed_value,
+                :homestead_exempt, :tax_year
+            )
+        """), property_params)
+        
+        # Get property ID
+        result = conn.execute(text("""
+            SELECT id FROM properties WHERE parcel_id = :parcel_id
+        """), {'parcel_id': entity_data['property']['parcel_id']})
+        property_id = result.fetchone()[0]
+        logger.info(f"     Property ID: {property_id}")
+    
     logger.info(f"     Acreage: {entity_data['property']['acreage']}, Market Value: ${entity_data['property']['market_value']:,.2f}")
     
     # 6. Create ownership relationship
     logger.info(f"  → Creating ownership relationship")
-    conn.execute(text("""
-        INSERT INTO relationships (
-            from_type, from_id, to_type, to_id, rel_type, source_system, 
-            start_date, confidence
-        )
-        VALUES (
-            'entity', :entity_id, 'property', :property_id, 'owns', :source_system,
-            :start_date, :confidence
-        )
-        ON CONFLICT DO NOTHING
-    """), {
-        'entity_id': entity_id,
-        'property_id': property_id,
-        'source_system': entity_data['source_system'],
-        'start_date': entity_data['property'].get('last_sale_date'),
-        'confidence': 0.95
-    })
-    logger.info(f"     Relationship created")
+    
+    # Check if relationship already exists
+    result = conn.execute(text("""
+        SELECT id FROM relationships 
+        WHERE from_type = 'entity' AND from_id = :entity_id 
+        AND to_type = 'property' AND to_id = :property_id 
+        AND rel_type = 'owns'
+    """), {'entity_id': entity_id, 'property_id': property_id})
+    existing = result.fetchone()
+    
+    if not existing:
+        conn.execute(text("""
+            INSERT INTO relationships (
+                from_type, from_id, to_type, to_id, rel_type, source_system, 
+                start_date, confidence
+            )
+            VALUES (
+                'entity', :entity_id, 'property', :property_id, 'owns', :source_system,
+                :start_date, :confidence
+            )
+        """), {
+            'entity_id': entity_id,
+            'property_id': property_id,
+            'source_system': entity_data['source_system'],
+            'start_date': entity_data['property'].get('last_sale_date'),
+            'confidence': 0.95
+        })
+        logger.info(f"     Relationship created")
+    else:
+        logger.info(f"     Relationship already exists")
     
     # 7. Create formation event
     logger.info(f"  → Creating formation event")
-    conn.execute(text("""
-        INSERT INTO events (
-            entity_id, event_type, event_date, source_system, payload
-        )
-        VALUES (
-            :entity_id, 'FORMATION', :formation_date, :source_system, :payload
-        )
-        ON CONFLICT DO NOTHING
-    """), {
-        'entity_id': entity_id,
-        'formation_date': entity_data['formation_date'],
-        'source_system': entity_data['source_system'],
-        'payload': entity_data['formation_event_payload']
-    })
-    logger.info(f"     Formation event created")
+    
+    # Check if event already exists
+    result = conn.execute(text("""
+        SELECT id FROM events 
+        WHERE entity_id = :entity_id 
+        AND event_type = 'FORMATION' 
+        AND event_date = :formation_date
+    """), {'entity_id': entity_id, 'formation_date': entity_data['formation_date']})
+    existing = result.fetchone()
+    
+    if not existing:
+        conn.execute(text("""
+            INSERT INTO events (
+                entity_id, event_type, event_date, source_system, payload
+            )
+            VALUES (
+                :entity_id, 'FORMATION', :formation_date, :source_system, :payload
+            )
+        """), {
+            'entity_id': entity_id,
+            'formation_date': entity_data['formation_date'],
+            'source_system': entity_data['source_system'],
+            'payload': entity_data['formation_event_payload']
+        })
+        logger.info(f"     Formation event created")
+    else:
+        logger.info(f"     Formation event already exists")
     
     # 8. Create risk score
     logger.info(f"  → Creating risk score: Grade {entity_data['risk_score']['grade']}, Score {entity_data['risk_score']['score']}")
-    conn.execute(text("""
-        INSERT INTO risk_scores (
-            entity_id, score, grade, flags
-        )
-        VALUES (
-            :entity_id, :score, :grade, :flags::jsonb
-        )
-        ON CONFLICT DO NOTHING
-    """), {
-        'entity_id': entity_id,
-        'score': entity_data['risk_score']['score'],
-        'grade': entity_data['risk_score']['grade'],
-        'flags': entity_data['risk_score']['flags']
-    })
-    logger.info(f"     Risk Score ID created with flags: {entity_data['risk_score']['flags']}")
+    
+    # Check if risk score already exists for this entity (we'll create a new one each time to track history)
+    # But for idempotency, we'll check if one was created very recently (within last minute)
+    result = conn.execute(text("""
+        SELECT id FROM risk_scores 
+        WHERE entity_id = :entity_id 
+        AND calculated_at > NOW() - INTERVAL '1 minute'
+        LIMIT 1
+    """), {'entity_id': entity_id})
+    existing = result.fetchone()
+    
+    if not existing:
+        conn.execute(text("""
+            INSERT INTO risk_scores (
+                entity_id, score, grade, flags
+            )
+            VALUES (
+                :entity_id, :score, :grade, CAST(:flags AS jsonb)
+            )
+        """), {
+            'entity_id': entity_id,
+            'score': entity_data['risk_score']['score'],
+            'grade': entity_data['risk_score']['grade'],
+            'flags': entity_data['risk_score']['flags']
+        })
+        logger.info(f"     Risk Score created with flags: {entity_data['risk_score']['flags']}")
+    else:
+        logger.info(f"     Risk Score already exists (created recently)")
     
     logger.info(f"\n✓ Successfully created {entity_name}")
 

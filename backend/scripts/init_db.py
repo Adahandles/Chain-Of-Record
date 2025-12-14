@@ -78,135 +78,217 @@ def seed_initial_data(engine) -> None:
     with engine.begin() as conn:
         # 1. Test address - 123 Main Street, Austin, TX
         logger.info("Creating test address...")
-        conn.execute(text("""
-            INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
-            VALUES ('123 Main Street', 'Austin', 'TX', '78701', 'Travis', 'US', 
-                    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
-            ON CONFLICT (normalized_hash) DO NOTHING
-        """))
         
-        # Get the address ID
+        # Check if address already exists
         result = conn.execute(text("""
-            SELECT id FROM addresses WHERE line1 = '123 Main Street' AND city = 'Austin'
+            SELECT id FROM addresses WHERE line1 = '123 Main Street' AND city = 'Austin' AND state = 'TX'
         """))
-        address_id = result.fetchone()[0]
-        logger.info(f"Test address created/found with ID: {address_id}")
+        existing = result.fetchone()
+        
+        if existing:
+            address_id = existing[0]
+            logger.info(f"Test address already exists with ID: {address_id}")
+        else:
+            conn.execute(text("""
+                INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
+                VALUES ('123 Main Street', 'Austin', 'TX', '78701', 'Travis', 'US', 
+                        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+            """))
+            
+            # Get the address ID
+            result = conn.execute(text("""
+                SELECT id FROM addresses WHERE line1 = '123 Main Street' AND city = 'Austin' AND state = 'TX'
+            """))
+            address_id = result.fetchone()[0]
+            logger.info(f"Test address created with ID: {address_id}")
         
         # 2. Test person - John Smith (registered agent)
         logger.info("Creating test person...")
-        conn.execute(text("""
-            INSERT INTO people (full_name, normalized_name)
-            VALUES ('John Smith', 'JOHN SMITH')
-            ON CONFLICT DO NOTHING
-        """))
         
-        # Get the person ID
+        # Check if person already exists
         result = conn.execute(text("""
             SELECT id FROM people WHERE full_name = 'John Smith'
         """))
-        person_id = result.fetchone()[0]
-        logger.info(f"Test person created/found with ID: {person_id}")
+        existing = result.fetchone()
+        
+        if existing:
+            person_id = existing[0]
+            logger.info(f"Test person already exists with ID: {person_id}")
+        else:
+            conn.execute(text("""
+                INSERT INTO people (full_name, normalized_name)
+                VALUES ('John Smith', 'JOHN SMITH')
+            """))
+            
+            # Get the person ID
+            result = conn.execute(text("""
+                SELECT id FROM people WHERE full_name = 'John Smith'
+            """))
+            person_id = result.fetchone()[0]
+            logger.info(f"Test person created with ID: {person_id}")
         
         # 3. Test entity - Test Company LLC
         logger.info("Creating test entity...")
         formation_date = today - timedelta(days=365)
-        conn.execute(text("""
-            INSERT INTO entities (
-                external_id, source_system, type, legal_name, jurisdiction, status,
-                formation_date, ein_available, ein_verified, registered_agent_id, primary_address_id
-            )
-            VALUES (
-                'TEST-LLC-001', 'test', 'llc', 'Test Company LLC', 'TX', 'ACTIVE',
-                :formation_date, true, true, :agent_id, :address_id
-            )
-            ON CONFLICT DO NOTHING
-        """), {
-            'formation_date': formation_date,
-            'agent_id': person_id,
-            'address_id': address_id
-        })
         
-        # Get the entity ID
+        # Check if entity already exists
         result = conn.execute(text("""
             SELECT id FROM entities WHERE external_id = 'TEST-LLC-001'
         """))
-        entity_id = result.fetchone()[0]
-        logger.info(f"Test entity created/found with ID: {entity_id}")
+        existing = result.fetchone()
+        
+        if existing:
+            entity_id = existing[0]
+            logger.info(f"Test entity already exists with ID: {entity_id}")
+        else:
+            conn.execute(text("""
+                INSERT INTO entities (
+                    external_id, source_system, type, legal_name, jurisdiction, status,
+                    formation_date, ein_available, ein_verified, registered_agent_id, primary_address_id
+                )
+                VALUES (
+                    'TEST-LLC-001', 'test', 'llc', 'Test Company LLC', 'TX', 'ACTIVE',
+                    :formation_date, true, true, :agent_id, :address_id
+                )
+            """), {
+                'formation_date': formation_date,
+                'agent_id': person_id,
+                'address_id': address_id
+            })
+            
+            # Get the entity ID
+            result = conn.execute(text("""
+                SELECT id FROM entities WHERE external_id = 'TEST-LLC-001'
+            """))
+            entity_id = result.fetchone()[0]
+            logger.info(f"Test entity created with ID: {entity_id}")
         
         # 4. Test property - PARCEL-12345 in Travis County
         logger.info("Creating test property...")
         
         # First create a situs address for the property
-        conn.execute(text("""
-            INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
-            VALUES ('456 Property Lane', 'Austin', 'TX', '78702', 'Travis', 'US', 
-                    'a3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856')
-            ON CONFLICT (normalized_hash) DO NOTHING
-        """))
-        
         result = conn.execute(text("""
-            SELECT id FROM addresses WHERE line1 = '456 Property Lane'
+            SELECT id FROM addresses WHERE line1 = '456 Property Lane' AND city = 'Austin'
         """))
-        property_address_id = result.fetchone()[0]
+        existing = result.fetchone()
         
-        conn.execute(text("""
-            INSERT INTO properties (
-                parcel_id, county, jurisdiction, situs_address_id, land_use_code,
-                acreage, market_value, assessed_value, homestead_exempt, tax_year
-            )
-            VALUES (
-                'PARCEL-12345', 'Travis', 'TX', :situs_address_id, '0100',
-                0.50, 350000.00, 325000.00, 'N', '2024'
-            )
-            ON CONFLICT DO NOTHING
-        """), {'situs_address_id': property_address_id})
+        if existing:
+            property_address_id = existing[0]
+        else:
+            conn.execute(text("""
+                INSERT INTO addresses (line1, city, state, postal_code, county, country, normalized_hash)
+                VALUES ('456 Property Lane', 'Austin', 'TX', '78702', 'Travis', 'US', 
+                        'a3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856')
+            """))
+            
+            result = conn.execute(text("""
+                SELECT id FROM addresses WHERE line1 = '456 Property Lane' AND city = 'Austin'
+            """))
+            property_address_id = result.fetchone()[0]
         
-        # Get the property ID
+        # Check if property already exists
         result = conn.execute(text("""
             SELECT id FROM properties WHERE parcel_id = 'PARCEL-12345'
         """))
-        property_id = result.fetchone()[0]
-        logger.info(f"Test property created/found with ID: {property_id}")
+        existing = result.fetchone()
+        
+        if existing:
+            property_id = existing[0]
+            logger.info(f"Test property already exists with ID: {property_id}")
+        else:
+            conn.execute(text("""
+                INSERT INTO properties (
+                    parcel_id, county, jurisdiction, situs_address_id, land_use_code,
+                    acreage, market_value, assessed_value, homestead_exempt, tax_year
+                )
+                VALUES (
+                    'PARCEL-12345', 'Travis', 'TX', :situs_address_id, '0100',
+                    0.50, 350000.00, 325000.00, 'N', '2024'
+                )
+            """), {'situs_address_id': property_address_id})
+            
+            # Get the property ID
+            result = conn.execute(text("""
+                SELECT id FROM properties WHERE parcel_id = 'PARCEL-12345'
+            """))
+            property_id = result.fetchone()[0]
+            logger.info(f"Test property created with ID: {property_id}")
         
         # 5. Test relationship - entity owns property
         logger.info("Creating test relationship...")
-        conn.execute(text("""
-            INSERT INTO relationships (
-                from_type, from_id, to_type, to_id, rel_type, source_system, confidence
-            )
-            VALUES (
-                'entity', :entity_id, 'property', :property_id, 'owns', 'test', 1.0
-            )
-            ON CONFLICT DO NOTHING
+        
+        # Check if relationship already exists
+        result = conn.execute(text("""
+            SELECT id FROM relationships 
+            WHERE from_type = 'entity' AND from_id = :entity_id 
+            AND to_type = 'property' AND to_id = :property_id 
+            AND rel_type = 'owns'
         """), {'entity_id': entity_id, 'property_id': property_id})
-        logger.info("Test relationship created")
+        existing = result.fetchone()
+        
+        if not existing:
+            conn.execute(text("""
+                INSERT INTO relationships (
+                    from_type, from_id, to_type, to_id, rel_type, source_system, confidence
+                )
+                VALUES (
+                    'entity', :entity_id, 'property', :property_id, 'owns', 'test', 1.0
+                )
+            """), {'entity_id': entity_id, 'property_id': property_id})
+            logger.info("Test relationship created")
+        else:
+            logger.info("Test relationship already exists")
         
         # 6. Test event - formation event
         logger.info("Creating test event...")
-        conn.execute(text("""
-            INSERT INTO events (
-                entity_id, event_type, event_date, source_system, payload
-            )
-            VALUES (
-                :entity_id, 'FORMATION', :formation_date, 'test',
-                '{"filing_type": "Articles of Organization", "filing_number": "TEST-LLC-001"}'::jsonb
-            )
-            ON CONFLICT DO NOTHING
+        
+        # Check if event already exists
+        result = conn.execute(text("""
+            SELECT id FROM events 
+            WHERE entity_id = :entity_id 
+            AND event_type = 'FORMATION' 
+            AND event_date = :formation_date
         """), {'entity_id': entity_id, 'formation_date': formation_date})
-        logger.info("Test event created")
+        existing = result.fetchone()
+        
+        if not existing:
+            conn.execute(text("""
+                INSERT INTO events (
+                    entity_id, event_type, event_date, source_system, payload
+                )
+                VALUES (
+                    :entity_id, 'FORMATION', :formation_date, 'test',
+                    '{"filing_type": "Articles of Organization", "filing_number": "TEST-LLC-001"}'::jsonb
+                )
+            """), {'entity_id': entity_id, 'formation_date': formation_date})
+            logger.info("Test event created")
+        else:
+            logger.info("Test event already exists")
         
         # 7. Test risk score - Grade B, score 35.5
         logger.info("Creating test risk score...")
-        conn.execute(text("""
-            INSERT INTO risk_scores (
-                entity_id, score, grade, flags
-            )
-            VALUES (
-                :entity_id, 35.5, 'B', '["established_entity"]'::jsonb
-            )
-            ON CONFLICT DO NOTHING
+        
+        # Check if risk score already exists (we'll just check for the latest one)
+        result = conn.execute(text("""
+            SELECT id FROM risk_scores 
+            WHERE entity_id = :entity_id 
+            ORDER BY calculated_at DESC 
+            LIMIT 1
         """), {'entity_id': entity_id})
-        logger.info("Test risk score created")
+        existing = result.fetchone()
+        
+        if not existing:
+            conn.execute(text("""
+                INSERT INTO risk_scores (
+                    entity_id, score, grade, flags
+                )
+                VALUES (
+                    :entity_id, 35.5, 'B', '["established_entity"]'::jsonb
+                )
+            """), {'entity_id': entity_id})
+            logger.info("Test risk score created")
+        else:
+            logger.info("Test risk score already exists")
     
     logger.info("Initial test data seeded successfully")
 
