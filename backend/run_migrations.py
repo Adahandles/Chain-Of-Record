@@ -18,14 +18,16 @@ def run_migrations():
                 command.upgrade(alembic_cfg, "head")
                 print("Migrations applied successfully")
             elif cmd == "downgrade":
-                command.downgrade(alembic_cfg, "-1")
-                print("Migration downgraded successfully")
+                # Accept optional revision argument, default to "-1"
+                revision = sys.argv[2] if len(sys.argv) > 2 else "-1"
+                command.downgrade(alembic_cfg, revision)
+                print(f"Migration downgraded successfully to revision: {revision}")
             else:
                 print(f"Unknown command: {cmd}")
-                print("Usage: python run_migrations.py [revision|upgrade|downgrade] [message]")
+                print("Usage: python run_migrations.py [revision|upgrade|downgrade] [message|revision]")
                 sys.exit(1)
         else:
-            print("Usage: python run_migrations.py [revision|upgrade|downgrade] [message]")
+            print("Usage: python run_migrations.py [revision|upgrade|downgrade] [message|revision]")
             sys.exit(1)
     except Exception as e:
         print(f"Error running migration: {e}")
