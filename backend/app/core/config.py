@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     environment: str = "local"  # local | dev | prod
     database_url: AnyUrl        # <- this is what was missing
     log_level: str = "INFO"
+    
+    # Verification settings
+    verification_file_storage_path: str = "/tmp/verification_files"
+    verification_max_file_size_mb: int = 10
+    verification_allowed_document_types: str = "drivers_license,passport,national_id,utility_bill,bank_statement,tax_document"
 
     @property
     def is_development(self) -> bool:

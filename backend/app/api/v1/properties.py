@@ -6,8 +6,9 @@ from app.core.db import get_db
 from app.domain.properties.service import PropertyService
 from app.schemas.properties import (
     PropertyOut, PropertyListItem, PropertySearchParams,
-    PropertyCreate, PropertyStatistics, AddressCreate
+    PropertyCreate, PropertyStatistics
 )
+from app.schemas.entities import AddressCreate
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
