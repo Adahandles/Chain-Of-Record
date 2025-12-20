@@ -178,7 +178,7 @@ class VerificationService:
             image_path=file_path,
             liveness_score=liveness_score,
             passed=passed,
-            metadata={"method": "placeholder"},
+            check_metadata={"method": "placeholder"},
             encrypted=True
         )
 

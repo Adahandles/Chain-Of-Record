@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.core.db import get_db
 from sqlalchemy import func
 
 router = APIRouter()
@@ -65,18 +65,17 @@ async def get_system_statistics(db: Session = Depends(get_db)):
     """
     try:
         # Import models here to avoid circular imports
-        from app.models.record import Record
-        from app.models.user import User
+        from app.domain.entities.models import Entity, Person
         
         # Get counts from database
-        record_count = db.query(func.count(Record.id)).scalar()
-        user_count = db.query(func.count(User.id)).scalar()
+        entity_count = db.query(func.count(Entity.id)).scalar()
+        person_count = db.query(func.count(Person.id)).scalar()
         
         return {
             "status": "healthy",
             "statistics": {
-                "total_records": record_count,
-                "total_users": user_count
+                "total_entities": entity_count,
+                "total_people": person_count
             }
         }
     except Exception as e:

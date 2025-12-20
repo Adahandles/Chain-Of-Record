@@ -106,7 +106,7 @@ class VerificationLiveness(Base):
     liveness_score = Column(Numeric(5, 2), nullable=True)
     passed = Column(Boolean, default=False, nullable=False, index=True)
     checked_at = Column(DateTime(timezone=True), server_default=func.now())
-    metadata = Column(JSONB, nullable=True)  # Additional metadata from liveness check
+    check_metadata = Column(JSONB, nullable=True)  # Additional metadata from liveness check
 
     # Relationships
     verification_request = relationship("VerificationRequest", back_populates="liveness_checks")

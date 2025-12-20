@@ -81,7 +81,7 @@ def upgrade() -> None:
         sa.Column('liveness_score', sa.Numeric(precision=5, scale=2), nullable=True),
         sa.Column('passed', sa.Boolean(), default=False, nullable=False),
         sa.Column('checked_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('check_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['verification_request_id'], ['verification_requests.id'], ondelete='CASCADE'),
     )

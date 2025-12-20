@@ -179,7 +179,7 @@ class VerificationLivenessRepository:
         image_path: str,
         liveness_score: Optional[float] = None,
         passed: bool = False,
-        metadata: Optional[dict] = None,
+        check_metadata: Optional[dict] = None,
         encrypted: bool = True
     ) -> VerificationLiveness:
         """Create a new liveness check record."""
@@ -188,7 +188,7 @@ class VerificationLivenessRepository:
             image_path=image_path,
             liveness_score=liveness_score,
             passed=passed,
-            metadata=metadata,
+            check_metadata=check_metadata,
             encrypted=encrypted
         )
         self.db.add(liveness)
