@@ -22,13 +22,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(email);
       if (result.success) {
         router.push('/dashboard');
       } else {
         setError(result.error || 'Login failed');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred during login');
     } finally {
       setLoading(false);

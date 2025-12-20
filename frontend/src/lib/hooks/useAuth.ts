@@ -18,23 +18,27 @@ export function useAuth() {
 
   useEffect(() => {
     // Check if user is logged in
-    const token = localStorage.getItem('auth_token');
-    const userStr = localStorage.getItem('user');
+    const checkAuth = () => {
+      const token = localStorage.getItem('auth_token');
+      const userStr = localStorage.getItem('user');
 
-    if (token && userStr) {
-      try {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+      if (token && userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string) => {
     try {
       // For demo purposes, we'll use a simple mock auth
       // In production, this would call the backend API

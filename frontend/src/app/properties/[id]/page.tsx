@@ -32,7 +32,7 @@ export default function PropertyDetailPage() {
       <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold">Property Not Found</h2>
-          <p className="mt-2 text-gray-600">The property you're looking for doesn't exist.</p>
+          <p className="mt-2 text-gray-600">The property you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/properties">
             <Button className="mt-4">Back to Properties</Button>
           </Link>

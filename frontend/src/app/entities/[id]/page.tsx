@@ -37,7 +37,7 @@ export default function EntityDetailPage() {
       <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold">Entity Not Found</h2>
-          <p className="mt-2 text-gray-600">The entity you're looking for doesn't exist.</p>
+          <p className="mt-2 text-gray-600">The entity you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/entities">
             <Button className="mt-4">Back to Entities</Button>
           </Link>

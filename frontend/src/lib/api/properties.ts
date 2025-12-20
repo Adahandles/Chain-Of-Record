@@ -24,7 +24,7 @@ export const propertiesApi = {
   },
 
   // Get property owners
-  getPropertyOwners: async (id: number): Promise<any[]> => {
+  getPropertyOwners: async (id: number): Promise<unknown[]> => {
     const response = await apiClient.get(`/properties/${id}/owners`);
     return response.data;
   },

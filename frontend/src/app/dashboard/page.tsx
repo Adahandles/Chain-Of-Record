@@ -2,7 +2,6 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { TrustScoreCard } from '@/components/dashboard/TrustScoreCard';
 import { RiskGradeChart } from '@/components/dashboard/RiskGradeChart';
 import { AlertsList } from '@/components/dashboard/AlertsList';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';

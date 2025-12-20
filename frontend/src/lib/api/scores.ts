@@ -3,7 +3,6 @@ import apiClient from './client';
 import type {
   RiskScore,
   HistoricalScore,
-  BatchScoreRequest,
   BatchScoreResponse,
   HighRiskEntity,
   ScoringStatistics,

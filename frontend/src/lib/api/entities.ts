@@ -32,7 +32,7 @@ export const entitiesApi = {
     maxDepth: number = 2,
     relationshipTypes?: string[]
   ): Promise<GraphData> => {
-    const params: any = { max_depth: maxDepth };
+    const params: Record<string, string | number> = { max_depth: maxDepth };
     if (relationshipTypes && relationshipTypes.length > 0) {
       params.relationship_types = relationshipTypes.join(',');
     }

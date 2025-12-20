@@ -1,7 +1,7 @@
 // Custom hooks for entity data
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { entitiesApi } from '../api/entities';
 import type { EntitySearchParams } from '../types/entity';
 

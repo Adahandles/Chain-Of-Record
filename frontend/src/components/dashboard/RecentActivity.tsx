@@ -14,25 +14,25 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ activities = [] }: RecentActivityProps) {
-  // Mock data for now
+  // Mock data for now - timestamps as static ISO strings
   const mockActivities: Activity[] = [
     {
       id: '1',
       type: 'entity_created',
       description: 'New entity registered: ABC Properties LLC',
-      timestamp: new Date().toISOString(),
+      timestamp: '2024-12-20T07:00:00Z',
     },
     {
       id: '2',
       type: 'score_calculated',
       description: 'Risk score updated for XYZ Corporation',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      timestamp: '2024-12-20T06:00:00Z',
     },
     {
       id: '3',
       type: 'alert_triggered',
       description: 'High-risk alert for DEF Holdings',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      timestamp: '2024-12-20T05:00:00Z',
     },
   ];
 
