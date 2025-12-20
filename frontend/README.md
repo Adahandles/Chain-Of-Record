@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chain Of Record - Frontend
 
-## Getting Started
+Modern, responsive web dashboard for the Chain Of Record entity and property intelligence platform. Built with Next.js 14+, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## 🚀 Features
+
+### Core Functionality
+- **Real-time Risk Score Visualization**: Interactive trust score cards and risk grade charts
+- **Entity Management**: Search, filter, and explore business entities with detailed views
+- **Property Intelligence**: Browse property records with comprehensive financial data
+- **Relationship Mapping**: Visualize connections between entities and properties
+- **Alert System**: Monitor high-risk entities with real-time notifications
+
+### Technical Highlights
+- ✅ **Next.js 14+** with App Router and Server Components
+- ✅ **TypeScript** for type safety throughout
+- ✅ **Tailwind CSS** for responsive design
+- ✅ **shadcn/ui** component library
+- ✅ **TanStack Query** for efficient data fetching and caching
+- ✅ **Recharts** for data visualization
+- ✅ **Mobile-first responsive design**
+- ✅ **Dark mode support**
+
+## 📋 Prerequisites
+
+- Node.js 18+ and npm
+- Backend API running on `http://localhost:8000`
+
+## 🛠️ Installation
+
+### 1. Install Dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env.local
+```
+
+Environment variables:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_VERSION=v1
+```
+
+### 3. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The application will be available at `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎯 Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Authentication
+Use any email and password to log in (demo mode).
 
-## Learn More
+### Searching Entities
+1. Navigate to "Entities" from the sidebar
+2. Filter by name, jurisdiction, type, or status
+3. Click any entity card for details
 
-To learn more about Next.js, take a look at the following resources:
+### Risk Scores
+- **Grade A**: Low risk (green)
+- **Grade B**: Moderate risk (blue)
+- **Grade C**: Medium risk (yellow)
+- **Grade D**: High risk (orange)
+- **Grade F**: Critical risk (red)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📱 Responsive Design
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Optimized for mobile, tablet, and desktop devices.
 
-## Deploy on Vercel
+## 📄 License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License - Part of the Chain Of Record platform.
