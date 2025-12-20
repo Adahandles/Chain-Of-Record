@@ -58,11 +58,17 @@ class FileStorage:
             shutil.copyfileobj(file_content, f)
             file_size = file_path.stat().st_size
 
-        # TODO: Implement encryption if needed (AES-256)
-        # For now, we just store files as-is
+        # TODO: Implement AES-256 encryption for secure file storage
+        # Encryption implementation plan:
+        # 1. Generate or retrieve encryption key from secure key management system
+        # 2. Use cryptography.fernet or AES from cryptography.hazmat
+        # 3. Encrypt file content before writing to disk
+        # 4. Store encryption metadata (IV, key ID) in database
+        # 5. Implement decryption for file retrieval
+        # For now, files are stored unencrypted with encryption flag tracked
         if encrypt:
             # Placeholder for encryption logic
-            logger.info(f"File saved (encryption placeholder): {file_path}")
+            logger.info(f"File saved (encryption to be implemented): {file_path}")
         else:
             logger.info(f"File saved without encryption: {file_path}")
 

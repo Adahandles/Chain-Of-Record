@@ -23,6 +23,10 @@ class Entity(Base):
     ein_verified = Column(Boolean)
     registered_agent_id = Column(BigInteger, index=True)  # FK to people table
     primary_address_id = Column(BigInteger, index=True)  # FK to addresses table
+    
+    # Verification fields
+    verification_status = Column(String(50), nullable=True, index=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -50,6 +54,11 @@ class Person(Base):
     id = Column(BigInteger, primary_key=True, index=True)
     full_name = Column(Text, nullable=False, index=True)
     normalized_name = Column(Text, index=True)  # Uppercase, stripped punctuation for matching
+    
+    # Verification fields
+    verification_status = Column(String(50), nullable=True, index=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self) -> str:

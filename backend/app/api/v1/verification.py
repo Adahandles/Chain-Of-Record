@@ -28,14 +28,33 @@ router = APIRouter(prefix="/verification", tags=["verification"])
 
 # Helper function to get current user ID (placeholder for actual auth)
 def get_current_user_id() -> int:
-    """Get current user ID from authentication context."""
+    """
+    Get current user ID from authentication context.
+    
+    TODO: Implement actual JWT authentication
+    This is a placeholder that returns user ID 1 for development.
+    In production, this should:
+    1. Extract JWT token from Authorization header
+    2. Validate token signature and expiration
+    3. Return the authenticated user ID from token claims
+    """
     # TODO: Implement actual authentication
     # For now, return a placeholder user ID
     return 1
 
 
 def get_current_admin_user_id() -> int:
-    """Get current admin user ID from authentication context."""
+    """
+    Get current admin user ID from authentication context.
+    
+    TODO: Implement actual admin authentication with role verification
+    This is a placeholder that returns user ID 1 for development.
+    In production, this should:
+    1. Extract JWT token from Authorization header
+    2. Validate token signature and expiration
+    3. Verify user has admin role/permission
+    4. Return the authenticated admin user ID from token claims
+    """
     # TODO: Implement actual admin authentication
     # For now, return a placeholder admin user ID
     return 1

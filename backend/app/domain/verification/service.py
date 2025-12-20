@@ -168,7 +168,18 @@ class VerificationService:
         )
 
         # TODO: Implement actual liveness detection logic
-        # For now, use a simple placeholder score
+        # Liveness detection implementation options:
+        # 1. Integrate with third-party provider (Onfido, Persona, Jumio)
+        # 2. Build custom ML model using face detection libraries:
+        #    - OpenCV for face detection
+        #    - dlib for facial landmarks
+        #    - TensorFlow/PyTorch for liveness classification
+        # 3. Check for multiple criteria:
+        #    - Face presence and quality
+        #    - Eye blink detection
+        #    - Head movement tracking
+        #    - Image manipulation detection
+        # For now, use a simple placeholder score for development
         liveness_score = 85.0  # Placeholder score
         passed = liveness_score >= 70.0
 
