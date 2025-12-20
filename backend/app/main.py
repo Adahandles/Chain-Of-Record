@@ -10,7 +10,7 @@ import uuid
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.db import init_db
-from app.api.v1 import entities, properties, scores, health
+from app.api.v1 import entities, properties, scores, health, verification
 
 
 # Setup logging
@@ -137,6 +137,7 @@ app.include_router(health.router, prefix=settings.api_v1_prefix)
 app.include_router(entities.router, prefix=settings.api_v1_prefix)
 app.include_router(properties.router, prefix=settings.api_v1_prefix)
 app.include_router(scores.router, prefix=settings.api_v1_prefix)
+app.include_router(verification.router, prefix=settings.api_v1_prefix)
 
 
 # Root endpoint
@@ -165,6 +166,7 @@ def api_info():
         {"path": "/api/v1/entities", "methods": ["GET", "POST"], "description": "Entity management"},
         {"path": "/api/v1/properties", "methods": ["GET", "POST"], "description": "Property management"},
         {"path": "/api/v1/scores", "methods": ["GET", "POST"], "description": "Risk scoring"},
+        {"path": "/api/v1/verification", "methods": ["GET", "POST"], "description": "KYC verification workflow"},
     ]
     
     return {
